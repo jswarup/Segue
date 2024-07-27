@@ -1,6 +1,10 @@
 // cy_seg.h ---------------------------------------------------------------------------------------------------------------------
 #pragma once
  
+#include    <vector>
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
 template < typename X>
 struct  Tr_Dual : public std::pair< X, X> 
 {
@@ -40,16 +44,19 @@ struct  Tr_Seg : public std::pair< X, X>
         : Base( data)
     {} 
 
-    auto        Size( void) const { return this->second +1; } 
     auto        First( void) const { return this->first; } 
+    void        SetFirst( const X  &f) { this->first = f; }
+
+    auto        Size( void) const { return this->second +1; } 
+    void        SetSize( const X  &sz) { this->second = sz -1; }
+
     auto        Mid( void) const { return this->First() +this->Size()/2; } 
     auto        Last( void) const { return this->First() +this->Size() -1; }
 
-    auto        SnapAt( const X &val) const 
+
+    auto        SnapAt( const X &val, bool exclValFlg) const 
     { 
-        Tr_Seg   f( this->First(), val -this->First()); 
-        Tr_Seg   s( val, this->First() +this->Size() -val);
-        return Tr_Dual< Tr_Seg>( f, s);
+        return Tr_Dual< Tr_Seg>( Tr_Seg( this->First(), val -this->First()), Tr_Seg( val +exclValFlg, this->First() +this->Size() -val -exclValFlg));
     }
 
     bool        Within( const X &val) const 
@@ -82,7 +89,7 @@ template < typename LessAt>
         auto    h = this->First() +this->Size();  
         while ( l < h) 
         {
-            X   mid =  (l + h)/2;
+            auto   mid =  (l + h)/2;
             if ( lessAt( mid, x))
                 l = mid + 1;
             else
@@ -142,40 +149,31 @@ template < typename Segs>
             while ( pSegs->size())
             {
                 auto        *pIntvl = &pSegs->back();
-                auto        pivotIndex = ( pIntvl->First() + pIntvl->Size())/2;
-                auto        p = QSortPartition( pIntvl->First(), pIntvl->Size(), pivotIndex);
-                auto        curIntvl = *pIntvl;
-                if ( p > curIntvl.First()) 
-                {
-                    pIntvl->SetSize( p);
-                    pIntvl = NULL;
-                }    
-                if ( ++p < curIntvl.Size())
-                {
-                    if ( pIntvl)
-                    {
-                        pIntvl->SetFirst( p);
-                        pIntvl = NULL;
-                    } else
-                        pSegs->emplace_back( Tr_Dual< X>( p, curIntvl.Size()));
-                }
-                if ( pIntvl)
-                    pSegs->pop_back();
+                auto        pivotIndex = pIntvl->Mid();
+                auto        p = QSortPartition( pIntvl->First(), pIntvl->Last(), pivotIndex);
+
+                auto        snaps = pIntvl->SnapAt( p, true);
+                pSegs->pop_back();
+                if ( snaps.first.Size())
+                    pSegs->emplace_back( snaps.first);
+                if ( snaps.second.Size())
+                    pSegs->emplace_back( snaps.second);
             } 
         }  
     }; 
 
 template < typename LessAt, typename SwapAt> 
-    uint16_t    QSort( const LessAt &lessAt, const SwapAt &swapAt, uint16_t succId = 0, class Tr_ChoreQueue *queue = NULL) 
+    bool    QSort( const LessAt &lessAt, const SwapAt &swapAt) 
     {   
-        if ( !this->Size())
-            return succId;
+        std::vector< Tr_Seg< X>>   segs;
 
-        std::vector< Tr_Dual< X>>   pendingSegs;
-        pendingSegs.reserve( 1024);
-        pendingSegs.emplace_back( Tr_Seg< X>( this->First(), this->Last())); 
-        SortOps< LessAt, SwapAt>( lessAt, swapAt).QSort( &pendingSegs);
-        return 0;
+        if ( !this->Size())
+            return false;
+
+        segs.reserve( 1024);
+        segs.emplace_back( SELF); 
+        SortOps< LessAt, SwapAt>( lessAt, swapAt).QSort( &segs);
+        return true;
     } 
 };
 
