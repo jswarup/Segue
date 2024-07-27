@@ -3,6 +3,10 @@
  
 #include    "mettle/silo/tr_seg.h"
 
+
+template < typename Arr, typename Count>  
+class Tr_ArrStk ;
+
 //---------------------------------------------------------------------------------------------------------------------------------
  
 template <   typename TStor, typename TSzType = uint32_t>
@@ -128,10 +132,10 @@ template < typename StorType>
         return sz;
     }
 
-/*  
+ 
 template < typename Count>
-    auto    Stack( Count *pCount) { return Tr_AtmStk< Tr_Arr< Stor, SzType>, Count>( this, pCount); }
-*/
+    auto    Stack( Count *pCount) { return Tr_ArrStk< Tr_Arr< Stor, SzType>, Count>( this, pCount); }
+ 
 
 template < typename Less, typename... Args>   
     auto   MinMax( const Less &less, const Args &... args) const 

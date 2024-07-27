@@ -33,15 +33,15 @@ template < typename StorType>
 
     void        SetAll( const Stor &iVal) 
     { 
-        Cy_Do::Loop< Sz>( [&]( uint32_t k) {
+        Tr_Do::Loop< Sz>( [&]( uint32_t k) {
             SetAll( k, iVal);
         });
     }
 
-    auto        &DoAssign( const Cy_Arr< Stor, SzType> &arr)
+    auto        &DoAssign( const Tr_Arr< Stor, SzType> &arr)
     { 
-        CY_ERROR_ASSERT( Size() == arr.Size());
-        Cy_Do::Loop< Sz>( [&]( uint32_t k) {
+        TR_ERROR_ASSERT( Size() == arr.Size());
+        Tr_Do::Loop< Sz>( [&]( uint32_t k) {
             SetAll( k, arr.At( 0));
         }); 
         return SELF;
@@ -62,7 +62,7 @@ template < typename StorType>
 
     Tr_Array    &operator=( const Tr_Array &vec) { *( std::array< Stor, Sz> *) this = vec; return SELF; }
 
-    Cy_Arr< Stor, SzType> Arr( void) { return Cy_Arr< Stor, SzType>( &SELF[ 0], Size()); }
+    Tr_Arr< Stor, SzType> Arr( void) { return Tr_Arr< Stor, SzType>( &SELF[ 0], Size()); }
 
 };
 
