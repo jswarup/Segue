@@ -2,8 +2,8 @@
 #pragma once 
 
 #include    "mettle/silo/tr_array.h" 
-#include    "mettle/strand/tr_atomic.h"
-#include    "mettle/strand/tr_atmutil.h"
+#include    "mettle/heist/tr_atomic.h"
+#include    "mettle/heist/tr_atmutil.h"
 
 //_____________________________________________________________________________________________________________________________
 //! \class Tr_FreeStack implements a stack of DStor objects for concurrent access. With Mx be the Max number of objects to be inserted..

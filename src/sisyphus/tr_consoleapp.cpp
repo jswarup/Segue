@@ -2,9 +2,10 @@
 
 #include "mettle/cove/tr_includes.h"
 #include "mettle/cove/tr_assist.h"
-#include "mettle/strand/tr_atomic.h"
+#include "mettle/heist/tr_atomic.h"
 #include "mettle/silo/tr_arr.h"
 #include "mettle/silo/tr_freestack.h"
+#include "mettle/heist/tr_heistcabal.h"
 
 //---------------------------------------------------------------------------------------------------------------------------------
 

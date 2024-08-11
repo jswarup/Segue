@@ -162,7 +162,7 @@ template < typename Select, typename... Args>
         for ( SzType i = 0; i < Size(); ++i) 
             if ( select( At( i), args...))
                 return i;
-        return CY_UINT32_MAX;
+        return TR_UINT32_MAX;
     }
 
 template < typename Equal, typename... Args>
@@ -440,7 +440,7 @@ template < typename Less, typename... Args>
         arr.DoInit( this->m_Sz);
         Tr_USeg( 0, this->Size()).Traverse( [&]( SzType i) { 
             uint32_t    mapIndex = remapIds.At( i);
-            if ( mapIndex == CY_UINT32_MAX)
+            if ( mapIndex == TR_UINT32_MAX)
                 return;
             arr.SetAt( mapIndex, this->At(  i));
             mapIndMx = std::max( mapIndex, mapIndMx);
@@ -458,7 +458,7 @@ template < typename Less, typename... Args>
     {   
         Tr_USeg( 0, this->Size()).Traverse( [&]( SzType i) {  
             SzType    mapIndex = this->At(  i);
-            SzType    image = ( mapIndex <  mapIds.Size()) ? mapIds.At( mapIndex) : CY_UINT32_MAX;
+            SzType    image = ( mapIndex <  mapIds.Size()) ? mapIds.At( mapIndex) : TR_UINT32_MAX;
             this->SetAt( i, image);
         }); 
         return;

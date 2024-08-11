@@ -2,7 +2,9 @@
 
 #include        <array>
 #include        <vector>
-#include        <iostream>
+#include        <iostream> 
+#include        <fstream> 
+#include        <functional>
 
 #include        <thread>
 #include        <atomic>
@@ -10,6 +12,11 @@
  #include       <condition_variable>  
 
 #include        <algorithm> 
+
+#ifdef TR_WINDOWS
+#include        <windows.h>
+#else
+#endif
 
 //---------------------------------------------------------------------------------------------------------------------------------
 

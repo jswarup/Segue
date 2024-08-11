@@ -56,9 +56,9 @@ public:
     { 
         Stor    oldNx1 = Next( s1);
         Stor    oldPr2 = Prev( s2);
-        if ( oldPr2!= CY_UINT32_MAX)
+        if ( oldPr2!= TR_UINT32_MAX)
             SetNext( oldPr2, oldNx1);
-        if ( oldNx1!= CY_UINT32_MAX)
+        if ( oldNx1!= TR_UINT32_MAX)
             SetPrev( oldNx1, oldPr2);
         SetPrev( s2, s1);
         SetNext( s1, s2); 
@@ -78,14 +78,14 @@ public:
     bool    IsSingleton( Stor ind)
     {    
         bool    res = Prev( ind) == ind;
-        CY_SANITY_ASSERT( !res || ( Prev( ind) ==  Next( ind)))
+        TR_SANITY_ASSERT( !res || ( Prev( ind) ==  Next( ind)))
         return  res;
     }
 
     bool    IsDual( Stor ind)
     {    
         bool    res = ind ==  Next( Next( ind)); 
-        CY_SANITY_ASSERT( !res || (( Prev( ind) == Next( ind)) && ( Prev( ind) != ind)))
+        TR_SANITY_ASSERT( !res || (( Prev( ind) == Next( ind)) && ( Prev( ind) != ind)))
         return  res;
     }
  
