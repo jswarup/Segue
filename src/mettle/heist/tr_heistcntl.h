@@ -21,7 +21,7 @@ struct Tr_HeistTraits
         MaxJob          = TR_UINT16_MAX, 
     }; 
 
-    typedef void                                Work( JobId succId, Tr_HeistCrew *queue);
+    typedef void                                Work( void);
     typedef std::function< Work>                WorkFn;
     typedef Tr_FreeStack< uint16_t, MaxJob>     JobStack;
     typedef Tr_FreeCache< 256, JobStack>        JobCache;
@@ -141,9 +141,9 @@ public:
     void            *UserData( JobId jobId) const { return m_UserDatas.At( jobId).Get(); }
     void            SetUserData( JobId jobId, void *userData) { m_UserDatas.SetAt( jobId, userData); }
 
-    void            DoWork( JobId jobId, JobId succId, Tr_HeistCrew *queue)
+    void            DoWork( JobId jobId)
     {
-        m_WorkFns[ jobId]( succId, queue);  
+        m_WorkFns[ jobId]();  
     }
 
     
@@ -174,34 +174,10 @@ public:
         return;
     }
     
-template < typename  Rogue>  
-    void     FillJob( JobId jobId, const Rogue &rogue)
+    void     FillJob( JobId jobId,  const WorkFn &work)
     {
-        m_WorkFns.SetAt( jobId, [=]( JobId succId, Tr_HeistCrew *queue) noexcept { 
-            rogue( succId, queue); 
-        });
+        m_WorkFns.SetAt( jobId, work);
     }
-
-template < typename  Rogue>  
-    void     FillJob( JobId jobId, Rogue *rogue)
-    {
-        m_WorkFns.SetAt( jobId, [=]( JobId succId, Tr_HeistCrew *queue) noexcept { 
-            (*rogue)( succId, queue); 
-        });
-    }
-
-template < typename  Rogue, typename Call, typename... Args>  
-    void     FillJob( JobId jobId, Rogue *rogue, const Call &call, const Args &... args)
-    {
-        m_WorkFns.SetAt( jobId, [=]( JobId succId, Tr_HeistCrew *queue)  noexcept { 
-            (rogue->*call)( succId, queue, args...); 
-        });
-    }   
-
-    void     FillJob( JobId jobId, Work method)
-    {
-        m_WorkFns.SetAt( jobId, method);
-    } 
 
     void    FillScheduleAfterJob( JobId schedId, JobId jobId, JobId *deps, uint32_t n);
 

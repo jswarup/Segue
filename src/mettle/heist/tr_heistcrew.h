@@ -81,12 +81,11 @@ public:
         m_Scheme->SetSzPred( jobId, 0);
         return jobId;
     } 
-
-template < typename Rogue,  typename... Args>
-    auto            Construct( JobId succId,  Rogue  rogue, const Args &... args) 
+ 
+    JobId           Construct( JobId succId, const WorkFn &work) 
     {   
         JobId       jobId = AllocJob();
-        m_Scheme->FillJob( jobId, rogue, args...); 
+        m_Scheme->FillJob( jobId, work); 
         m_Scheme->AssignSucc( jobId, succId);
         return jobId; 
     } 
@@ -120,7 +119,7 @@ template < typename Rogue,  typename... Args>
         m_SuccId.Set( m_Scheme->SuccId( jobId));    
         if ( m_SzTQJob.Get())
             FlushTempJobs();
-        m_Scheme->DoWork( jobId, m_SuccId.Get(), this);  
+        m_Scheme->DoWork( jobId);  
         m_User.Set( NULL);  
         if ( m_SuccId.Get()) 
         {
@@ -180,12 +179,13 @@ inline  void   Tr_HeistCntl::FillScheduleAfterJob( JobId schedId, JobId jobId, J
     Tr_USeg( 0, sz).Traverse( [&]( uint32_t i) {
         RaiseSzPred( deps[ i]);  
     }); 
-    m_WorkFns.SetAt( schedId, [=]( JobId succ, Tr_HeistCrew *queue) {
+    m_WorkFns.SetAt( schedId, [=]( void) {
         Tr_USeg( 0, sz).Traverse( [&]( uint32_t i) {
-            uint16_t    sId = deps[ i];
-            auto        sPred = queue->Scheme()->LowerSzPred( sId); 
+            uint16_t        sId = deps[ i];
+            Tr_HeistCrew    *crew = Tr_HeistCntl::Crew();
+            auto            sPred = crew->Scheme()->LowerSzPred( sId); 
             if ( !sPred)
-                queue->EnqueueJob( sId);
+                crew->EnqueueJob( sId);
         });
     }); 
     AssignSucc( jobId, schedId);

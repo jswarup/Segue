@@ -103,20 +103,20 @@ int  heistTest( int argc, char *argv[])
     auto                *queue = scheduler.CurQueue();
     uint16_t            jobId = scheduler.NullJob(); 
     
-    jobId =  queue->Construct( jobId, [=]( uint16_t succId, Tr_HeistCrew *queue) { 
+    jobId =  queue->Construct( jobId, [=]( void) { 
         auto    tCalls = SortBench();
         Tr_HeistCrew *crew = Tr_HeistCntl::Crew();
         uint16_t jobId = crew->SuccId();
-        jobId = crew->Construct( jobId, [=]( uint16_t succId, Tr_HeistCrew *queue) { 
+        jobId = crew->Construct( jobId, [=]( void) { 
             std::get< 3>( tCalls)();
         });
-        jobId = crew->Construct( jobId, [=]( uint16_t succId, Tr_HeistCrew *queue) { 
+        jobId = crew->Construct( jobId, [=]( void) { 
             std::get< 2>( tCalls)();
         });
-        jobId = crew->Construct( jobId, [=]( uint16_t succId, Tr_HeistCrew *queue) { 
+        jobId = crew->Construct( jobId, [=]( void) { 
             std::get< 1>( tCalls)();
         });
-        jobId = crew->Construct( jobId, [=]( uint16_t succId, Tr_HeistCrew *queue) { 
+        jobId = crew->Construct( jobId, [=]( void) { 
             std::get< 0>( tCalls)();
         });
         crew->EnqueueJob( jobId);
