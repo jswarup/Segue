@@ -25,8 +25,9 @@ class Tr_HeistCrew  :  public Tr_HeistTraits
     JobIdChunk              m_TQJobChunk;       // Chunk for storing (QJob)  during executions by this Queue
 
     JobCache                m_JobCache;         // Local Free job Cache, replenished from global cache 
-    Tr_NAtm< void *>        m_User;
     std::thread             m_Thread; 
+    Tr_NAtm< void *>        m_User;
+    Tr_NAtm< JobId>         m_SuccId;
 
 public:
 
@@ -38,6 +39,7 @@ public:
         m_QJobChunk.DoInit( MaxJob);
         m_TQJobChunk.DoInit( MxFnJob);
         m_GrabFailCount = 0;
+        scheme->SetCrew( this);
         return true;
     }  
 
@@ -100,7 +102,9 @@ template < typename Rogue,  typename... Args>
     uint32_t        SzHoard( void) const { return 2 * m_Scheme->SzQueue() +1; }
  
     uint32_t        Index( void) const { return m_Index.Get(); }   
-    uint32_t        SzQJob( void) const { return m_SzQJob.Get(); } 
+    uint32_t        SzQJob( void) const { return m_SzQJob.Get(); }  
+ 
+    uint16_t        SuccId( void) const { return m_SuccId.Get(); }   
     
     void            *CurUserData( void) const { return m_User.Get(); }
     void            SetUserData( JobId jobId, void *userData) { m_Scheme->SetUserData( jobId, userData); }
@@ -113,16 +117,16 @@ template < typename Rogue,  typename... Args>
         m_GrabFailCount = 0;                  
         //TR_SANITY_ASSERT( !m_Scheme->SzPred( jobId))
         m_User.Set( m_Scheme->UserData( jobId));   
-        JobId       succId = m_Scheme->SuccId( jobId);    
+        m_SuccId.Set( m_Scheme->SuccId( jobId));    
         if ( m_SzTQJob.Get())
             FlushTempJobs();
-        m_Scheme->DoWork( jobId, succId, this);  
+        m_Scheme->DoWork( jobId, m_SuccId.Get(), this);  
         m_User.Set( NULL);  
-        if ( succId) 
+        if ( m_SuccId.Get()) 
         {
-            auto    succPred = m_Scheme->LowerSzPred( succId); 
+            auto    succPred = m_Scheme->LowerSzPred( m_SuccId.Get()); 
             if ( !succPred)
-                EnqueueJob( succId);
+                EnqueueJob( m_SuccId.Get());
         } 
         m_Scheme->SetSzPred( jobId, TR_UINT16_MAX);  
         if ( m_SzTQJob.Get())

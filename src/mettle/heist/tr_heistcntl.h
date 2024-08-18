@@ -6,7 +6,7 @@
 
 class   Tr_HeistCntl;
 class   Tr_HeistCrew;  
-class   Tr_HeistCabal;  
+class   Tr_HeistRaid;  
 
 //--------------------------------------------------------------------------------------------------------------------------------- 
 // Tr_HeistTraits is the definition class. It stores all the information that is common to all sessions and job.
@@ -25,7 +25,7 @@ struct Tr_HeistTraits
     typedef std::function< Work>                WorkFn;
     typedef Tr_FreeStack< uint16_t, MaxJob>     JobStack;
     typedef Tr_FreeCache< 256, JobStack>        JobCache;
-    typedef Tr_HeistCntl                      Scheme; 
+    typedef Tr_HeistCntl                        Scheme; 
     typedef Tr_Spinlock                         Spinlock;
  
     constexpr static JobId      NullJob( void) { return JobId( 0); }  
@@ -89,6 +89,8 @@ protected:
     Tr_FArr< Tr_Atm< void *>>       m_UserDatas;            // userData 
     Tr_Atm< uint32_t>               m_DumpLock;   
     Spinlock                        m_Globlock;  
+    
+    static inline thread_local Tr_HeistCrew    *s_CurCrew = NULL;
 
 public:
     Tr_HeistCntl( void)
@@ -103,6 +105,10 @@ public:
     ~Tr_HeistCntl( void)
     {}
     
+    
+    static Tr_HeistCrew   *Crew( void) { return s_CurCrew; }
+    static void           SetCrew( Tr_HeistCrew *cur) { s_CurCrew = cur; }
+
     std::ostream    *OStrm( void) { return m_OStrmPtr; }
     void            SetOStrm( std::ostream *pOStrm) { m_OStrmPtr = pOStrm; }  
 

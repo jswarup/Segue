@@ -1,11 +1,11 @@
-// tr_heistcabal.h _____________________________________________________________________________________________________________
+// tr_heistraid.h _____________________________________________________________________________________________________________
 #pragma once
   
 #include    "mettle/heist//tr_heistcrew.h"  
 
 //--------------------------------------------------------------------------------------------------------------------------------- 
 
-class Tr_HeistCabal :  public Tr_HeistCntl
+class Tr_HeistRaid :  public Tr_HeistCntl
 {    
     uint32_t                            m_MxQueue;
     uint32_t                            m_LastGrab;
@@ -13,13 +13,13 @@ class Tr_HeistCabal :  public Tr_HeistCntl
     Tr_FArr< Tr_HeistCrew *>           m_ChoreQueues; 
      
 public:
-    Tr_HeistCabal( uint32_t mxQueue) 
+    Tr_HeistRaid( uint32_t mxQueue) 
         : m_MxQueue( mxQueue), m_LastGrab( 0)
     {
         m_ChoreQueues.DoInit( m_MxQueue +1, NULL);
     } 
 
-    ~Tr_HeistCabal( void)
+    ~Tr_HeistRaid( void)
     {
         for ( uint32_t i = 0; i < m_MxQueue; ++i)
             if ( m_ChoreQueues[ i])
@@ -89,7 +89,7 @@ inline Tr_HeistCrew::JobId          Tr_HeistCrew::GrabJob( void)
         }
     } 
     _mm_pause();
-    return static_cast < Tr_HeistCabal*>( m_Scheme)->GrabJob();
+    return static_cast < Tr_HeistRaid*>( m_Scheme)->GrabJob();
 }
   
 //--------------------------------------------------------------------------------------------------------------------------------- 
