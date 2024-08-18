@@ -46,6 +46,56 @@ int miscTest( int argc, char *argv[])
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------
+  
+template <typename Left, typename Right>
+struct Tr_SeqMule;
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+template < typename TMule>
+struct Tr_Mule
+{ 
+    typedef  TMule         Mule;    
+
+public:
+    static constexpr const char   *Label = "Mule";
+
+	Tr_Mule( void)  
+	{} 
+
+    Mule            *GetMule( void)  { return static_cast< Mule *>( this); }
+    const Mule      *GetMule( void) const  { return static_cast< const Mule *>( this); }
+    
+template < typename Right>
+    Tr_SeqMule< Mule, Right>            operator>>( const Right & r) const;
+};
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+template <typename Left, typename Right>
+struct Tr_SeqMule : public  Tr_Mule< Tr_SeqMule< Left, Right> >
+{
+    typedef typename    Left::Mule    TargetLeft;
+    typedef typename    Right::Mule   TargetRight;
+    
+    TargetLeft          m_Left;
+    TargetRight         m_Right;
+    
+    Tr_SeqMule( const Left & left, const Right & right)
+        : m_Left( *left.GetMule()),  m_Right( *right.GetMule())
+    {} 
+};
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+template <typename TMule>
+template <typename Right>
+Tr_SeqMule< TMule, Right>                  Tr_Mule< TMule>::operator>>( const Right &r) const
+{
+    return Tr_SeqMule< TMule, Right>(* (const TMule *) this, r);
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------
 
 auto    SortBench( void)
 {
@@ -105,20 +155,12 @@ int  heistTest( int argc, char *argv[])
     
     jobId =  queue->Construct( jobId, [=]( void) { 
         auto    tCalls = SortBench();
-        Tr_HeistCrew *crew = Tr_HeistCntl::Crew();
-        uint16_t jobId = crew->SuccId();
-        jobId = crew->Construct( jobId, [=]( void) { 
-            std::get< 3>( tCalls)();
-        });
-        jobId = crew->Construct( jobId, [=]( void) { 
-            std::get< 2>( tCalls)();
-        });
-        jobId = crew->Construct( jobId, [=]( void) { 
-            std::get< 1>( tCalls)();
-        });
-        jobId = crew->Construct( jobId, [=]( void) { 
-            std::get< 0>( tCalls)();
-        });
+        Tr_HeistCrew    *crew = Tr_HeistCntl::Crew();
+        uint16_t        jobId = crew->SuccId();
+        jobId = crew->Construct( jobId, std::get< 3>( tCalls));
+        jobId = crew->Construct( jobId, std::get< 2>( tCalls));
+        jobId = crew->Construct( jobId, std::get< 1>( tCalls));
+        jobId = crew->Construct( jobId, std::get< 0>( tCalls)); 
         crew->EnqueueJob( jobId);
     });
     scheduler.CurQueue()->EnqueueJob( jobId);
