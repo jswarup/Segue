@@ -47,7 +47,10 @@ int miscTest( int argc, char *argv[])
 
 //---------------------------------------------------------------------------------------------------------------------------------
   
-template <typename Left, typename Right>
+typedef std::function< void( void)> WorkFn;
+
+
+template <typename Left, typename Right, typename lM, typename rM>
 struct Tr_SeqMule;
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -66,15 +69,48 @@ public:
     Mule            *GetMule( void)  { return static_cast< Mule *>( this); }
     const Mule      *GetMule( void) const  { return static_cast< const Mule *>( this); }
     
-template < typename Right>
-    Tr_SeqMule< Mule, Right>            operator>>( const Right & r) const;
+template < typename Right, typename rM = typename Right::Mule>
+    Tr_SeqMule< Mule, Right, Mule, rM>            operator>>( const Right & r) const;
+};
+
+//---------------------------------------------------------------------------------------------------------------------------------
+ 
+struct Tr_JobMule : public  Tr_Mule< Tr_JobMule>
+{
+    typedef  Tr_JobMule         Mule;   
+    WorkFn            m_WorkFn;
+
+    Tr_JobMule( WorkFn  workFn) : 
+        m_WorkFn( workFn)
+    {} 
+
+template < typename Right, typename rM = typename Right::Mule>
+    friend  auto    operator>>( WorkFn workFn, const Right &r) 
+    {
+        return Tr_SeqMule< Tr_JobMule, Right, Tr_JobMule, rM>( Tr_JobMule( workFn), r);
+    }
+
+template < typename Left, typename lM = typename Left::Mule>
+    friend  auto    operator>>( const Left &l, WorkFn workFn) 
+    {
+        return Tr_SeqMule< Left, Tr_JobMule, lM, Tr_JobMule>( l, Tr_JobMule( workFn));
+    }
+     
+/* 
+    friend  Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, const Tr_JobMule &jobMule);
+    
+    friend  Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( const Tr_JobMule &jobMule, WorkFn w2);
+*/
+    friend  Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2);
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
 
-template <typename Left, typename Right>
-struct Tr_SeqMule : public  Tr_Mule< Tr_SeqMule< Left, Right> >
+template <typename Left, typename Right, typename lM = typename Left::Mule, typename rM = typename Right::Mule>
+struct Tr_SeqMule : public  Tr_Mule< Tr_SeqMule< Left, Right, lM, rM> >
 {
+    typedef  Tr_SeqMule< Left, Right, lM, rM>   Mule;   
+    
     typedef typename    Left::Mule    TargetLeft;
     typedef typename    Right::Mule   TargetRight;
     
@@ -89,10 +125,25 @@ struct Tr_SeqMule : public  Tr_Mule< Tr_SeqMule< Left, Right> >
 //---------------------------------------------------------------------------------------------------------------------------------
 
 template <typename TMule>
-template <typename Right>
-Tr_SeqMule< TMule, Right>                  Tr_Mule< TMule>::operator>>( const Right &r) const
+template <typename Right, typename rM>
+Tr_SeqMule< TMule, Right, TMule, rM>                  Tr_Mule< TMule>::operator>>( const Right &r) const
 {
     return Tr_SeqMule< TMule, Right>(* (const TMule *) this, r);
+}
+/* 
+Tr_SeqMule< Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, const Tr_JobMule &jobMule)
+{
+    return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w1), jobMule);
+}
+
+Tr_SeqMule< Tr_JobMule, Tr_JobMule> operator>>( const Tr_JobMule &jobMule, WorkFn w2)
+{
+    return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( jobMule, Tr_JobMule( w2));
+}
+*/
+Tr_SeqMule< Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2)
+{
+    return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w2), Tr_JobMule( w2));
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -154,7 +205,10 @@ int  heistTest( int argc, char *argv[])
     uint16_t            jobId = scheduler.NullJob(); 
     
     jobId =  queue->Construct( jobId, [=]( void) { 
-        auto    tCalls = SortBench();
+        auto            tCalls = SortBench();
+        WorkFn          w1 = std::get< 1>( tCalls);
+        WorkFn          w2 = std::get< 2>( tCalls);
+        auto            test = w1  >> w2 >> w1;
         Tr_HeistCrew    *crew = Tr_HeistCntl::Crew();
         uint16_t        jobId = crew->SuccId();
         jobId = crew->Construct( jobId, std::get< 3>( tCalls));
