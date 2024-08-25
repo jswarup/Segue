@@ -53,6 +53,9 @@ typedef std::function< void( void)> WorkFn;
 template <typename Left, typename Right, typename lM, typename rM>
 struct Tr_SeqMule;
 
+template <typename Left, typename Right, typename lM, typename rM>
+struct Tr_ParMule;
+
 //---------------------------------------------------------------------------------------------------------------------------------
 
 template < typename TMule>
@@ -71,11 +74,15 @@ public:
     
 template < typename Right >
     friend Tr_SeqMule< Mule, Right, Mule, typename Right::Mule> operator>>( const Tr_Mule &m, const Right & r);
+
+template < typename Right >
+    friend Tr_ParMule< Mule, Right, Mule, typename Right::Mule> operator||( const Tr_Mule &m, const Right & r);
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
  
-struct Tr_JobMule : public  Tr_Mule< Tr_JobMule>
+template <typename WorkFn>
+struct Tr_JobMule : public  Tr_Mule< Tr_JobMule< WorkFn>>
 {
     typedef  Tr_JobMule         Mule;   
     WorkFn            m_WorkFn;
@@ -125,9 +132,43 @@ auto    operator>>( const Tr_Mule< TMule> &mule, const Right &r)
     return Tr_SeqMule< TMule, Right>(* (const TMule *) &mule, r);
 } 
 
-Tr_SeqMule< Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2)
+template <typename Lambda>
+Tr_SeqMule< Tr_JobMule< Lambda>, Tr_JobMule< Lambda>> operator>>( Lambda w1, Lambda w2) 
 {
-    return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w2), Tr_JobMule( w2));
+    return Tr_SeqMule< Tr_JobMule< Lambda>, Tr_JobMule< Lambda>>( Tr_JobMule< Lambda>( w2), Tr_JobMule< Lambda>( w2));
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+template <typename Left, typename Right, typename lM = typename Left::Mule, typename rM = typename Right::Mule>
+struct Tr_ParMule : public  Tr_Mule< Tr_ParMule< Left, Right, lM, rM> >
+{
+    typedef  Tr_ParMule< Left, Right, lM, rM>   Mule;   
+    
+    typedef typename    Left::Mule    TargetLeft;
+    typedef typename    Right::Mule   TargetRight;
+    
+    TargetLeft          m_Left;
+    TargetRight         m_Right;
+    
+    Tr_ParMule( const Left & left, const Right & right)
+        : m_Left( *left.GetMule()),  m_Right( *right.GetMule())
+    {} 
+};
+
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+template <typename TMule, typename Right>
+auto    operator||( const Tr_Mule< TMule> &mule, const Right &r) 
+{
+    return Tr_ParMule< TMule, Right>(* (const TMule *) &mule, r);
+} 
+
+template <typename Lambda>
+Tr_ParMule< Tr_JobMule< Lambda>, Tr_JobMule< Lambda>> operator||( Lambda w1, Lambda w2)
+{
+    return Tr_ParMule< Tr_JobMule< Lambda>, Tr_JobMule< Lambda>>( Tr_JobMule< Lambda>( w2), Tr_JobMule< Lambda>( w2));
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -136,13 +177,13 @@ auto    SortBench( void)
 {
     Tr_FArr< double>     *testArr = new Tr_FArr< double>( 91);
 
-    auto    t1 = [=]( void) {
+    WorkFn    t1 = [=]( void) {
         Tr_Do::Loop( testArr->Size(), [&]( uint32_t k) {
             testArr->SetAt( k, std::rand());
         });
     };
 
-    auto    t2 = [=]( void) {
+    WorkFn    t2 = [=]( void) {
         Tr_Seg( 0U, testArr->Size()).QSort( [&]( uint32_t i1, uint32_t i2) {
             return testArr->At( i1)  < testArr->At( i2);
         },
@@ -150,17 +191,19 @@ auto    SortBench( void)
             return testArr->SwapAt( i1, i2);
         }); 
     };
-    auto    t3 = [=]( void) {
+    WorkFn    t3 = [=]( void) {
         Tr_Do::Loop( testArr->Size(), [&]( uint32_t k) {
             std::cout << testArr->At( k) << " ";
         });
         std::cout << "\n";
     };
 
-    auto    t4 = [=]( void) {
+    WorkFn    t4 = [=]( void) {
         delete testArr;
     };
-
+    
+    auto            test = t1  >> ( t2 || t1) >> t4;
+        
     return std::make_tuple( t1, t2, t3, t4);;
 }
 
@@ -192,7 +235,6 @@ int  heistTest( int argc, char *argv[])
         auto            tCalls = SortBench();
         WorkFn          w1 = std::get< 1>( tCalls);
         WorkFn          w2 = std::get< 2>( tCalls);
-        auto            test = w1  >> ( w2 >> w1) >> w2;
         Tr_HeistCrew    *crew = Tr_HeistCntl::Crew();
         uint16_t        jobId = crew->SuccId();
         jobId = crew->Construct( jobId, std::get< 3>( tCalls));

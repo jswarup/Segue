@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="Tr_Seq&lt;*&gt;"> 
+  		<DisplayString>{ {first} {second}}</DisplayString> 
+	</Type>
+	<Type Name="Tr_Arr&lt;*&gt;"> 
+		<DisplayString>{{ size={m_Sz} }}</DisplayString>
+		<Expand> 
+			<ArrayItems>
+				<Size>m_Sz</Size>
+				<ValuePointer>m_Arr</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+	<Type Name="Tr_CStr"> 
+  		<DisplayString>{m_Arr,[m_Sz]s}</DisplayString>
+	</Type>
+</AutoVisualizer>
