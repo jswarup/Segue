@@ -47,7 +47,6 @@ int miscTest( int argc, char *argv[])
 
 //---------------------------------------------------------------------------------------------------------------------------------
   
-typedef std::function< void( void)> WorkFn;
 
 
 template <typename Left, typename Right, typename lM, typename rM>
@@ -80,33 +79,6 @@ template < typename Right >
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
- 
-template <typename WorkFn>
-struct Tr_JobMule : public  Tr_Mule< Tr_JobMule< WorkFn>>
-{
-    typedef  Tr_JobMule         Mule;   
-    WorkFn            m_WorkFn;
-
-    Tr_JobMule( WorkFn  workFn) : 
-        m_WorkFn( workFn)
-    {} 
-
-template < typename Right, typename rM = typename Right::Mule>
-    friend  auto    operator>>( WorkFn workFn, const Right &r) 
-    {
-        return Tr_SeqMule< Tr_JobMule, Right, Tr_JobMule, rM>( Tr_JobMule( workFn), r);
-    }
-
-template < typename Left, typename lM = typename Left::Mule>
-    friend  auto    operator>>( const Left &l, WorkFn workFn) 
-    {
-        return Tr_SeqMule< Left, Tr_JobMule, lM, Tr_JobMule>( l, Tr_JobMule( workFn));
-    }
-      
-    friend  Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2);
-};
-
-//---------------------------------------------------------------------------------------------------------------------------------
 
 template <typename Left, typename Right, typename lM = typename Left::Mule, typename rM = typename Right::Mule>
 struct Tr_SeqMule : public  Tr_Mule< Tr_SeqMule< Left, Right, lM, rM> >
@@ -132,12 +104,6 @@ auto    operator>>( const Tr_Mule< TMule> &mule, const Right &r)
     return Tr_SeqMule< TMule, Right>(* (const TMule *) &mule, r);
 } 
 
-template <typename Lambda>
-Tr_SeqMule< Tr_JobMule< Lambda>, Tr_JobMule< Lambda>> operator>>( Lambda w1, Lambda w2) 
-{
-    return Tr_SeqMule< Tr_JobMule< Lambda>, Tr_JobMule< Lambda>>( Tr_JobMule< Lambda>( w2), Tr_JobMule< Lambda>( w2));
-}
-
 //---------------------------------------------------------------------------------------------------------------------------------
 
 template <typename Left, typename Right, typename lM = typename Left::Mule, typename rM = typename Right::Mule>
@@ -156,7 +122,6 @@ struct Tr_ParMule : public  Tr_Mule< Tr_ParMule< Left, Right, lM, rM> >
     {} 
 };
 
-
 //---------------------------------------------------------------------------------------------------------------------------------
 
 template <typename TMule, typename Right>
@@ -165,10 +130,42 @@ auto    operator||( const Tr_Mule< TMule> &mule, const Right &r)
     return Tr_ParMule< TMule, Right>(* (const TMule *) &mule, r);
 } 
 
-template <typename Lambda>
-Tr_ParMule< Tr_JobMule< Lambda>, Tr_JobMule< Lambda>> operator||( Lambda w1, Lambda w2)
+//---------------------------------------------------------------------------------------------------------------------------------
+ 
+typedef std::function< void( void)> WorkFn;
+
+struct Tr_JobMule : public  Tr_Mule< Tr_JobMule>
 {
-    return Tr_ParMule< Tr_JobMule< Lambda>, Tr_JobMule< Lambda>>( Tr_JobMule< Lambda>( w2), Tr_JobMule< Lambda>( w2));
+    typedef  Tr_JobMule     Mule;   
+    WorkFn                  m_WorkFn;
+
+    Tr_JobMule( WorkFn  workFn) : 
+        m_WorkFn( workFn)
+    {} 
+
+template < typename Right, typename rM = typename Right::Mule>
+    friend  auto    operator>>( WorkFn workFn, const Right &r) 
+    {
+        return Tr_SeqMule< Tr_JobMule, Right, Tr_JobMule, rM>( Tr_JobMule( workFn), r);
+    }
+
+template < typename Left, typename lM = typename Left::Mule>
+    friend  auto    operator>>( const Left &l, WorkFn workFn) 
+    {
+        return Tr_SeqMule< Left, Tr_JobMule, lM, Tr_JobMule>( l, Tr_JobMule( workFn));
+    }
+      
+    friend  Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2);
+};
+ 
+Tr_ParMule< Tr_JobMule, Tr_JobMule> operator||( WorkFn w1, WorkFn w2)
+{
+    return Tr_ParMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w2), Tr_JobMule( w2));
+} 
+ 
+Tr_SeqMule< Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2) 
+{
+    return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w2), Tr_JobMule( w2));
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------
