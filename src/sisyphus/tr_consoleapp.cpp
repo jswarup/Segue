@@ -46,6 +46,8 @@ int miscTest( int argc, char *argv[])
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------
+  
+
 
 template <typename Left, typename Right, typename lM, typename rM>
 struct Tr_SeqMule;
@@ -74,24 +76,6 @@ template < typename Right >
 
 template < typename Right >
     friend Tr_ParMule< Mule, Right, Mule, typename Right::Mule> operator||( const Tr_Mule &m, const Right & r);
-
-template < typename Lambda, typename... Args>
-    void    TreeTraverse( const Lambda &lambda, const Args &... args)
-    {
-        TreeTraverse( ( Tr_Mule *) NULL, lambda, args...);
-    }
-
-template < typename Parent, typename Lambda, typename... Args>
-    void    TreeTraverse( Parent *parent, const Lambda &lambda, const Args &... args)
-    { 
-        TreeTraverse( parent, ( Tr_Mule *) NULL, lambda, args...);
-    }
-
-template < typename Parent, typename Child, typename Lambda, typename... Args>
-    void    TreeTraverse( Parent *parent, Child *child, const Lambda &lambda, const Args &... args)
-    {
-        GetMule()->TreeTraverseImpl( parent, child, lambda, args...);
-    }
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -109,14 +93,7 @@ struct Tr_SeqMule : public  Tr_Mule< Tr_SeqMule< Left, Right, lM, rM> >
     
     Tr_SeqMule( const Left & left, const Right & right)
         : m_Left( *left.GetMule()),  m_Right( *right.GetMule())
-    {}  
-
-template < typename Parent, typename Child, typename Lambda, typename... Args>
-    void    TreeTraverseImpl( Parent *parent, Child *child, const Lambda &lambda, const Args &... args)
-    {
-        m_Left.TreeTraverse( parent, m_Right.GetMule(), lambda, args...);  
-        m_Right.TreeTraverse( m_Left.GetMule(), child, lambda, args...);
-    }
+    {} 
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -143,13 +120,6 @@ struct Tr_ParMule : public  Tr_Mule< Tr_ParMule< Left, Right, lM, rM> >
     Tr_ParMule( const Left & left, const Right & right)
         : m_Left( *left.GetMule()),  m_Right( *right.GetMule())
     {} 
- 
-template < typename Parent, typename Child, typename Lambda, typename... Args>
-    void    TreeTraverseImpl( Parent *parent, Child *child, const Lambda &lambda, const Args &... args)
-    {
-        m_Left.TreeTraverse( parent, child, lambda, args...);
-        m_Right.TreeTraverse( parent, child, lambda, args...);
-    }
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -162,9 +132,9 @@ auto    operator||( const Tr_Mule< TMule> &mule, const Right &r)
 
 //---------------------------------------------------------------------------------------------------------------------------------
  
-typedef std::function< void( void)>     WorkFn;
+typedef std::function< void( void)> WorkFn;
 
-struct Tr_JobMule : public Tr_Mule< Tr_JobMule>
+struct Tr_JobMule : public  Tr_Mule< Tr_JobMule>
 {
     typedef  Tr_JobMule     Mule;   
     WorkFn                  m_WorkFn;
@@ -183,24 +153,17 @@ template < typename Left, typename lM = typename Left::Mule>
     friend  auto    operator>>( const Left &l, WorkFn workFn) 
     {
         return Tr_SeqMule< Left, Tr_JobMule, lM, Tr_JobMule>( l, Tr_JobMule( workFn));
-    
     }
+      
+    friend  Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2);
+};
  
-template < typename Parent, typename Child, typename Lambda, typename... Args>
-    void    TreeTraverseImpl( Parent *parent, Child *child, const Lambda &lambda, const Args &... args)
-    {
-        lambda( this, parent,  args...);
-        if ( child)
-            child->TreeTraverse( this, lambda, args...);
-    }
-}; 
- 
-inline Tr_ParMule< Tr_JobMule, Tr_JobMule> operator||( WorkFn w1, WorkFn w2)
+Tr_ParMule< Tr_JobMule, Tr_JobMule> operator||( WorkFn w1, WorkFn w2)
 {
     return Tr_ParMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w2), Tr_JobMule( w2));
 } 
  
-inline Tr_SeqMule< Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2) 
+Tr_SeqMule< Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2) 
 {
     return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w2), Tr_JobMule( w2));
 }
@@ -209,7 +172,7 @@ inline Tr_SeqMule< Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2)
 
 auto    SortBench( void)
 {
-    Tr_FArr< double>     *testArr = new Tr_FArr< double>( 91);
+    Tr_FArr< double>     *testArr = new Tr_FArr< double>( 191);
 
     WorkFn    t1 = [=]( void) {
         Tr_Do::Loop( testArr->Size(), [&]( uint32_t k) {
@@ -225,7 +188,6 @@ auto    SortBench( void)
             return testArr->SwapAt( i1, i2);
         }); 
     };
-
     WorkFn    t3 = [=]( void) {
         Tr_Do::Loop( testArr->Size(), [&]( uint32_t k) {
             std::cout << testArr->At( k) << " ";
@@ -237,11 +199,8 @@ auto    SortBench( void)
         delete testArr;
     };
     
-    auto            test =   t1  >> t2 ;
-
-    test.TreeTraverse( [&]( auto *node, auto *parent) {
-        std::cout << "A" <<parent<< "->A" << node << ";\n";
-    });
+    auto            test = t1  >> ( t2 || t1) >> t4;
+        
     return std::make_tuple( t1, t2, t3, t4);;
 }
 

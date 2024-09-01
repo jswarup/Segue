@@ -39,7 +39,6 @@ public:
         m_QJobChunk.DoInit( MaxJob);
         m_TQJobChunk.DoInit( MxFnJob);
         m_GrabFailCount = 0;
-        scheme->SetCrew( this);
         return true;
     }  
 
@@ -116,6 +115,7 @@ public:
         m_GrabFailCount = 0;                  
         //TR_SANITY_ASSERT( !m_Scheme->SzPred( jobId))
         m_User.Set( m_Scheme->UserData( jobId));   
+        m_Scheme->SetCrew( this);
         m_SuccId.Set( m_Scheme->SuccId( jobId));    
         if ( m_SzTQJob.Get())
             FlushTempJobs();
