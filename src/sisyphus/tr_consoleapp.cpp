@@ -70,13 +70,13 @@ public:
 template < typename Right >
     friend Tr_SeqMule< Mule, Right, Mule, typename Right::Mule> operator>>( const Tr_Mule &m, const Right &r)
     {
-        return Tr_SeqMule< Mule, Right>(* (const Mule *) &mule, r);
+        return Tr_SeqMule< Mule, Right>( mule, r);
     } 
 
 template < typename Right >
     friend Tr_ParMule< Mule, Right, Mule, typename Right::Mule> operator||( const Tr_Mule &m, const Right &r)
     {
-        return Tr_ParMule< TMule, Right>(* (const TMule *) &mule, r);
+        return Tr_ParMule< TMule, Right>( mule, r);
     } 
 };
 
