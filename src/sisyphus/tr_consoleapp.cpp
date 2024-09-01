@@ -139,7 +139,7 @@ inline auto    operator>>( const Left &l, const WorkFn &workFn)
 }
 inline Tr_ParMule< Tr_JobMule, Tr_JobMule> operator||( const WorkFn &w1, const WorkFn &w2)
 {
-    return Tr_ParMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w2), Tr_JobMule( w2));
+    return Tr_ParMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w1), Tr_JobMule( w2));
 } 
 
 inline Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( const WorkFn &w1, const WorkFn &w2)
