@@ -46,13 +46,11 @@ int miscTest( int argc, char *argv[])
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------
-  
 
-
-template <typename Left, typename Right, typename lM, typename rM>
+template <typename Left, typename Right, typename LeftMule, typename RightMule>
 struct Tr_SeqMule;
 
-template <typename Left, typename Right, typename lM, typename rM>
+template <typename Left, typename Right, typename LeftMule, typename RightMule>
 struct Tr_ParMule;
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -61,75 +59,57 @@ template < typename TMule>
 struct Tr_Mule
 { 
     typedef  TMule         Mule;    
+    uint32_t               m_Ind;
 
 public:
     static constexpr const char   *Label = "Mule";
 
 	Tr_Mule( void)  
-	{} 
-
-    Mule            *GetMule( void)  { return static_cast< Mule *>( this); }
-    const Mule      *GetMule( void) const  { return static_cast< const Mule *>( this); }
-    
-template < typename Right >
-    friend Tr_SeqMule< Mule, Right, Mule, typename Right::Mule> operator>>( const Tr_Mule &m, const Right & r);
+	{}  
 
 template < typename Right >
-    friend Tr_ParMule< Mule, Right, Mule, typename Right::Mule> operator||( const Tr_Mule &m, const Right & r);
+    friend Tr_SeqMule< Mule, Right, Mule, typename Right::Mule> operator>>( const Tr_Mule &m, const Right &r)
+    {
+        return Tr_SeqMule< Mule, Right>(* (const Mule *) &mule, r);
+    } 
+
+template < typename Right >
+    friend Tr_ParMule< Mule, Right, Mule, typename Right::Mule> operator||( const Tr_Mule &m, const Right &r)
+    {
+        return Tr_ParMule< TMule, Right>(* (const TMule *) &mule, r);
+    } 
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
 
-template <typename Left, typename Right, typename lM = typename Left::Mule, typename rM = typename Right::Mule>
-struct Tr_SeqMule : public  Tr_Mule< Tr_SeqMule< Left, Right, lM, rM> >
+template <typename Left, typename Right, typename LeftMule = typename Left::Mule, typename RightMule = typename Right::Mule>
+struct Tr_SeqMule : public  Tr_Mule< Tr_SeqMule< Left, Right, LeftMule, RightMule> >
 {
-    typedef  Tr_SeqMule< Left, Right, lM, rM>   Mule;   
+    typedef  Tr_SeqMule< Left, Right, LeftMule, RightMule>      Mule;  
     
-    typedef typename    Left::Mule    TargetLeft;
-    typedef typename    Right::Mule   TargetRight;
+    LeftMule          m_Left;
+    RightMule         m_Right;
     
-    TargetLeft          m_Left;
-    TargetRight         m_Right;
-    
-    Tr_SeqMule( const Left & left, const Right & right)
-        : m_Left( *left.GetMule()),  m_Right( *right.GetMule())
+    Tr_SeqMule( const Left &left, const Right &right)
+        : m_Left( left),  m_Right( right)
     {} 
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
 
-template <typename TMule, typename Right>
-auto    operator>>( const Tr_Mule< TMule> &mule, const Right &r) 
+template <typename Left, typename Right, typename LeftMule = typename Left::Mule, typename RightMule = typename Right::Mule>
+struct Tr_ParMule : public  Tr_Mule< Tr_ParMule< Left, Right, LeftMule, RightMule> >
 {
-    return Tr_SeqMule< TMule, Right>(* (const TMule *) &mule, r);
-} 
-
-//---------------------------------------------------------------------------------------------------------------------------------
-
-template <typename Left, typename Right, typename lM = typename Left::Mule, typename rM = typename Right::Mule>
-struct Tr_ParMule : public  Tr_Mule< Tr_ParMule< Left, Right, lM, rM> >
-{
-    typedef  Tr_ParMule< Left, Right, lM, rM>   Mule;   
+    typedef  Tr_ParMule< Left, Right, LeftMule, RightMule>      Mule;   
     
-    typedef typename    Left::Mule    TargetLeft;
-    typedef typename    Right::Mule   TargetRight;
+    LeftMule          m_Left;
+    RightMule         m_Right;
     
-    TargetLeft          m_Left;
-    TargetRight         m_Right;
-    
-    Tr_ParMule( const Left & left, const Right & right)
-        : m_Left( *left.GetMule()),  m_Right( *right.GetMule())
+    Tr_ParMule( const Left &left, const Right &right)
+        : m_Left( left),  m_Right( right)
     {} 
 };
-
-//---------------------------------------------------------------------------------------------------------------------------------
-
-template <typename TMule, typename Right>
-auto    operator||( const Tr_Mule< TMule> &mule, const Right &r) 
-{
-    return Tr_ParMule< TMule, Right>(* (const TMule *) &mule, r);
-} 
-
+ 
 //---------------------------------------------------------------------------------------------------------------------------------
  
 typedef std::function< void( void)> WorkFn;
@@ -139,34 +119,33 @@ struct Tr_JobMule : public  Tr_Mule< Tr_JobMule>
     typedef  Tr_JobMule     Mule;   
     WorkFn                  m_WorkFn;
 
-    Tr_JobMule( WorkFn  workFn) : 
+    Tr_JobMule( const WorkFn &workFn) : 
         m_WorkFn( workFn)
-    {} 
-
-template < typename Right, typename rM = typename Right::Mule>
-    friend  auto    operator>>( WorkFn workFn, const Right &r) 
-    {
-        return Tr_SeqMule< Tr_JobMule, Right, Tr_JobMule, rM>( Tr_JobMule( workFn), r);
-    }
-
-template < typename Left, typename lM = typename Left::Mule>
-    friend  auto    operator>>( const Left &l, WorkFn workFn) 
-    {
-        return Tr_SeqMule< Left, Tr_JobMule, lM, Tr_JobMule>( l, Tr_JobMule( workFn));
-    }
-      
-    friend  Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2);
+    {}  
 };
- 
-Tr_ParMule< Tr_JobMule, Tr_JobMule> operator||( WorkFn w1, WorkFn w2)
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+template < typename Right, typename RightMule = typename Right::Mule>
+inline auto    operator>>( const WorkFn &workFn, const Right &r) 
+{
+    return Tr_SeqMule< Tr_JobMule, Right, Tr_JobMule, RightMule>( Tr_JobMule( workFn), r);
+}
+
+template < typename Left, typename LeftMule = typename Left::Mule>
+inline auto    operator>>( const Left &l, const WorkFn &workFn) 
+{
+    return Tr_SeqMule< Left, Tr_JobMule, LeftMule, Tr_JobMule>( l, Tr_JobMule( workFn));
+}
+inline Tr_ParMule< Tr_JobMule, Tr_JobMule> operator||( const WorkFn &w1, const WorkFn &w2)
 {
     return Tr_ParMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w2), Tr_JobMule( w2));
 } 
- 
-Tr_SeqMule< Tr_JobMule, Tr_JobMule> operator>>( WorkFn w1, WorkFn w2) 
+
+inline Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( const WorkFn &w1, const WorkFn &w2)
 {
-    return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w2), Tr_JobMule( w2));
-}
+    return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w1), Tr_JobMule( w2));
+}  
 
 //---------------------------------------------------------------------------------------------------------------------------------
 
@@ -199,7 +178,7 @@ auto    SortBench( void)
         delete testArr;
     };
     
-    auto            test = t1  >> ( t2 || t1) >> t4;
+    auto            test = t1  >> ( ( t2 || t1) >> t4) >> t1;
         
     return std::make_tuple( t1, t2, t3, t4);;
 }
