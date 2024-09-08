@@ -53,17 +53,31 @@ struct Tr_SeqMule;
 template <typename Left, typename Right, typename LeftMule, typename RightMule>
 struct Tr_ParMule;
 
+struct Tr_JobMule;
+
+//---------------------------------------------------------------------------------------------------------------------------------
+
+struct Tr_MuleBase
+{  
+    enum Type {
+        UnkTy,
+        JobTy,
+        SeqTy,
+        ParTy,
+    };
+    static constexpr const uint32_t                     Type = Tr_MuleBase::UnkTy;
+    typedef std::function< void( void)>                 WorkFn;
+};
+
 //---------------------------------------------------------------------------------------------------------------------------------
 
 template < typename TMule>
-struct Tr_Mule
+struct Tr_Mule : public Tr_MuleBase
 { 
     typedef  TMule         Mule;    
     uint32_t               m_Ind;
-
+    
 public:
-    static constexpr const char   *Label = "Mule";
-
 	Tr_Mule( void)  
 	{}  
 
@@ -78,6 +92,7 @@ template < typename Right >
     {
         return Tr_ParMule< TMule, Right>( mule, r);
     } 
+ 
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -89,10 +104,18 @@ struct Tr_SeqMule : public  Tr_Mule< Tr_SeqMule< Left, Right, LeftMule, RightMul
     
     LeftMule          m_Left;
     RightMule         m_Right;
+
+    static constexpr const uint32_t             Type = Tr_MuleBase::SeqTy;
+    static constexpr const uint32_t             SzJob = LeftMule::SzJob +RightMule::SzJob;
     
     Tr_SeqMule( const Left &left, const Right &right)
         : m_Left( left),  m_Right( right)
     {} 
+    
+template < typename Lambda, typename... Args>
+    void    PlayChild( const Lambda &lambda, const Args &... args)
+    {
+    }
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -102,47 +125,84 @@ struct Tr_ParMule : public  Tr_Mule< Tr_ParMule< Left, Right, LeftMule, RightMul
 {
     typedef  Tr_ParMule< Left, Right, LeftMule, RightMule>      Mule;   
     
+    static constexpr const uint32_t             Type = Tr_MuleBase::ParTy;  
+    static constexpr const uint32_t             SzJob = []() {
+        uint32_t     sz = LeftMule::SzJob +RightMule::SzJob +1;
+        if ( LeftMule::Type == Tr_MuleBase::Type )
+            --sz; 
+        if ( RightMule::Type == Tr_MuleBase::Type )
+            --sz; 
+        return sz;
+    }();
+    
+
     LeftMule          m_Left;
     RightMule         m_Right;
     
     Tr_ParMule( const Left &left, const Right &right)
         : m_Left( left),  m_Right( right)
     {} 
+
+template < typename Lambda, typename... Args>
+    void    PlayChild( const Lambda &lambda, const Args &... args) 
+    {
+    }
+    
 };
  
 //---------------------------------------------------------------------------------------------------------------------------------
  
-typedef std::function< void( void)> WorkFn;
 
 struct Tr_JobMule : public  Tr_Mule< Tr_JobMule>
 {
+    static constexpr const uint32_t  SzJob = 1;
+    static constexpr const uint32_t                     Type = Tr_MuleBase::UnkTy;
+
     typedef  Tr_JobMule     Mule;   
     WorkFn                  m_WorkFn;
 
     Tr_JobMule( const WorkFn &workFn) : 
         m_WorkFn( workFn)
     {}  
+    
+template < typename Lambda, typename... Args>
+    void    PlayChild( const Lambda &lambda, const Args &... args)
+    {
+    }
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
 
 template < typename Right, typename RightMule = typename Right::Mule>
-inline auto    operator>>( const WorkFn &workFn, const Right &r) 
+inline auto    operator>>( const typename RightMule::WorkFn &workFn, const Right &r) 
 {
     return Tr_SeqMule< Tr_JobMule, Right, Tr_JobMule, RightMule>( Tr_JobMule( workFn), r);
 }
 
 template < typename Left, typename LeftMule = typename Left::Mule>
-inline auto    operator>>( const Left &l, const WorkFn &workFn) 
+inline auto    operator>>( const Left &l, const  typename LeftMule::WorkFn &workFn) 
 {
     return Tr_SeqMule< Left, Tr_JobMule, LeftMule, Tr_JobMule>( l, Tr_JobMule( workFn));
 }
-inline Tr_ParMule< Tr_JobMule, Tr_JobMule> operator||( const WorkFn &w1, const WorkFn &w2)
+
+template < typename Right, typename RightMule = typename Right::Mule>
+inline auto    operator||( const typename RightMule::WorkFn &workFn, const Right &r) 
+{
+    return Tr_ParMule< Tr_JobMule, Right, Tr_JobMule, RightMule>( Tr_JobMule( workFn), r);
+}
+
+template < typename Left, typename LeftMule = typename Left::Mule>
+inline auto    operator||( const Left &l, const  typename LeftMule::WorkFn &workFn) 
+{
+    return Tr_ParMule< Left, Tr_JobMule, LeftMule, Tr_JobMule>( l, Tr_JobMule( workFn));
+}
+
+inline Tr_ParMule< Tr_JobMule, Tr_JobMule> operator||( const Tr_JobMule::WorkFn &w1, const Tr_JobMule::WorkFn &w2)
 {
     return Tr_ParMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w1), Tr_JobMule( w2));
 } 
 
-inline Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( const WorkFn &w1, const WorkFn &w2)
+inline Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( const Tr_JobMule::WorkFn &w1, const Tr_JobMule::WorkFn &w2)
 {
     return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w1), Tr_JobMule( w2));
 }  
@@ -153,13 +213,13 @@ auto    SortBench( void)
 {
     Tr_FArr< double>     *testArr = new Tr_FArr< double>( 191);
 
-    WorkFn    t1 = [=]( void) {
+    auto    t1 = [=]( void) {
         Tr_Do::Loop( testArr->Size(), [&]( uint32_t k) {
             testArr->SetAt( k, std::rand());
         });
     };
 
-    WorkFn    t2 = [=]( void) {
+    auto    t2 = [=]( void) {
         Tr_Seg( 0U, testArr->Size()).QSort( [&]( uint32_t i1, uint32_t i2) {
             return testArr->At( i1)  < testArr->At( i2);
         },
@@ -167,19 +227,22 @@ auto    SortBench( void)
             return testArr->SwapAt( i1, i2);
         }); 
     };
-    WorkFn    t3 = [=]( void) {
+    auto  t3 = [=]( void) {
         Tr_Do::Loop( testArr->Size(), [&]( uint32_t k) {
             std::cout << testArr->At( k) << " ";
         });
         std::cout << "\n";
     };
 
-    WorkFn    t4 = [=]( void) {
+    auto    t4 = [=]( void) {
         delete testArr;
     };
     
-    auto            test = t1  >> ( ( t2 || t1) >> t4) >> t1;
-        
+    auto            test = t1  >> ( ( t2 || t1 || t4 ) >> t4) >> t1 >> t4;
+    uint32_t        s = decltype( test)::SzJob;
+    test.PlayChild( [&]( auto *node, auto *child) {
+        std::cout << "A" << node << "->A" << child << ";\n";
+    });     
     return std::make_tuple( t1, t2, t3, t4);;
 }
 
@@ -209,8 +272,8 @@ int  heistTest( int argc, char *argv[])
     
     jobId =  queue->Construct( jobId, [=]( void) { 
         auto            tCalls = SortBench();
-        WorkFn          w1 = std::get< 1>( tCalls);
-        WorkFn          w2 = std::get< 2>( tCalls);
+        auto            w1 = std::get< 1>( tCalls);
+        auto            w2 = std::get< 2>( tCalls);
         Tr_HeistCrew    *crew = Tr_HeistCntl::Crew();
         uint16_t        jobId = crew->SuccId();
         jobId = crew->Construct( jobId, std::get< 3>( tCalls));
