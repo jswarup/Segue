@@ -80,19 +80,6 @@ struct Tr_Mule : public Tr_MuleBase
 public:
 	Tr_Mule( void)  
 	{}  
-
-template < typename Right >
-    friend Tr_SeqMule< Mule, Right, Mule, typename Right::Mule> operator>>( const Tr_Mule &m, const Right &r)
-    {
-        return Tr_SeqMule< Mule, Right>( mule, r);
-    } 
-
-template < typename Right >
-    friend Tr_ParMule< Mule, Right, Mule, typename Right::Mule> operator||( const Tr_Mule &m, const Right &r)
-    {
-        return Tr_ParMule< TMule, Right>( mule, r);
-    } 
- 
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -173,39 +160,51 @@ template < typename Lambda, typename... Args>
 
 //---------------------------------------------------------------------------------------------------------------------------------
 
-template < typename Right, typename RightMule = typename Right::Mule>
-inline auto    operator>>( const typename RightMule::WorkFn &workFn, const Right &r) 
+template < typename Left, typename Right, typename RightMule = typename Right::Mule, typename LeftMule = typename Left::Mule>
+inline auto    operator>>( const Left &left, const Right &right) 
 {
-    return Tr_SeqMule< Tr_JobMule, Right, Tr_JobMule, RightMule>( Tr_JobMule( workFn), r);
+    return Tr_SeqMule< LeftMule, RightMule>( left, right);
+} 
+
+template < typename Right, typename RightMule = typename Right::Mule>
+inline auto    operator>>( const typename RightMule::WorkFn &workFn, const Right &right) 
+{
+    return Tr_SeqMule< Tr_JobMule, RightMule>( Tr_JobMule( workFn), right);
 }
 
 template < typename Left, typename LeftMule = typename Left::Mule>
-inline auto    operator>>( const Left &l, const  typename LeftMule::WorkFn &workFn) 
+inline auto    operator>>( const Left &left, const  typename LeftMule::WorkFn &workFn) 
 {
-    return Tr_SeqMule< Left, Tr_JobMule, LeftMule, Tr_JobMule>( l, Tr_JobMule( workFn));
+    return Tr_SeqMule< LeftMule, Tr_JobMule>( left, Tr_JobMule( workFn));
 }
+
+inline auto     operator>>( const Tr_JobMule::WorkFn &w1, const Tr_JobMule::WorkFn &w2)
+{
+    return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w1), Tr_JobMule( w2));
+}  
+
+template < typename Left, typename Right, typename RightMule = typename Right::Mule, typename LeftMule = typename Left::Mule>
+inline auto    operator||( const Left &left, const Right &right) 
+{
+    return Tr_ParMule< LeftMule, RightMule>( left, right);
+} 
 
 template < typename Right, typename RightMule = typename Right::Mule>
 inline auto    operator||( const typename RightMule::WorkFn &workFn, const Right &r) 
 {
-    return Tr_ParMule< Tr_JobMule, Right, Tr_JobMule, RightMule>( Tr_JobMule( workFn), r);
+    return Tr_ParMule< Tr_JobMule, RightMule>( Tr_JobMule( workFn), r);
 }
 
 template < typename Left, typename LeftMule = typename Left::Mule>
 inline auto    operator||( const Left &l, const  typename LeftMule::WorkFn &workFn) 
 {
-    return Tr_ParMule< Left, Tr_JobMule, LeftMule, Tr_JobMule>( l, Tr_JobMule( workFn));
+    return Tr_ParMule<  LeftMule, Tr_JobMule>( l, Tr_JobMule( workFn));
 }
 
-inline Tr_ParMule< Tr_JobMule, Tr_JobMule> operator||( const Tr_JobMule::WorkFn &w1, const Tr_JobMule::WorkFn &w2)
+inline auto     operator||( const Tr_JobMule::WorkFn &w1, const Tr_JobMule::WorkFn &w2)
 {
     return Tr_ParMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w1), Tr_JobMule( w2));
 } 
-
-inline Tr_SeqMule< Tr_JobMule, Tr_JobMule, Tr_JobMule, Tr_JobMule> operator>>( const Tr_JobMule::WorkFn &w1, const Tr_JobMule::WorkFn &w2)
-{
-    return Tr_SeqMule< Tr_JobMule, Tr_JobMule>( Tr_JobMule( w1), Tr_JobMule( w2));
-}  
 
 //---------------------------------------------------------------------------------------------------------------------------------
 
