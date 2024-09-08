@@ -115,9 +115,9 @@ struct Tr_ParMule : public  Tr_Mule< Tr_ParMule< Left, Right, LeftMule, RightMul
     static constexpr const uint32_t             Type = Tr_MuleBase::ParTy;  
     static constexpr const uint32_t             SzJob = []() {
         uint32_t     sz = LeftMule::SzJob +RightMule::SzJob +1;
-        if ( LeftMule::Type == Tr_MuleBase::Type )
+        if ( LeftMule::Type == Tr_MuleBase::ParTy )
             --sz; 
-        if ( RightMule::Type == Tr_MuleBase::Type )
+        if ( RightMule::Type == Tr_MuleBase::ParTy )
             --sz; 
         return sz;
     }();
@@ -143,7 +143,7 @@ template < typename Lambda, typename... Args>
 struct Tr_JobMule : public  Tr_Mule< Tr_JobMule>
 {
     static constexpr const uint32_t  SzJob = 1;
-    static constexpr const uint32_t                     Type = Tr_MuleBase::UnkTy;
+    static constexpr const uint32_t                     Type = Tr_MuleBase::JobTy;
 
     typedef  Tr_JobMule     Mule;   
     WorkFn                  m_WorkFn;
